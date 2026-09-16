@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{name}} - TileServer GL</title>
+  <link rel="stylesheet" type="text/css" href="{{public_url}}maplibre-gl.css{{&key_query}}" />
+  <link rel="stylesheet" type="text/css" href="{{public_url}}maplibre-gl-inspect.css{{&key_query}}" />
+  <link rel="stylesheet" type="text/css" href="{{public_url}}leaflet.css{{&key_query}}" />
+  <script src="{{public_url}}maplibre-gl.js{{&key_query}}"></script>
+  <script src="{{public_url}}maplibre-gl-inspect.js{{&key_query}}"></script>
+  <script src="{{public_url}}leaflet.js{{&key_query}}"></script>
+  <script src="{{public_url}}leaflet-hash.js{{&key_query}}"></script>
+  <style>
+    body { margin:0; padding:0; font-family: Arial, sans-serif; }
+    #map { position:absolute; top:0; bottom:0; width:100%; }
+    .leaflet-control-layers-toggle {
+      background-image: url({{public_url}}images/layers.png{{&key_query}});
+      width: 36px;
+      height: 36px;
+    }
+    .leaflet-retina .leaflet-control-layers-toggle {
+      background-image: url({{public_url}}images/layers-2x.png{{&key_query}});
+      background-size: 26px 26px;
+    }
+    .leaflet-default-icon-path {
+      background-image: url({{public_url}}images/marker-icon.png{{&key_query}});
+    }
+    
+    /* --- Custom Coordinate Search Box Style --- */
+    .coord-search-box {
+      position: absolute;
+      top: 10px;
+      left: 50px;
+      z-index: 1000;
+      background: white;
+      padding: 10px 15px;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 14px;
+    }
+    .coord-search-box input {
+      width: 90px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .coord-search-box button {
+      padding: 5px 12px;
+      background: #0078A8;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .coord-search-box button:hover {
+      background: #005a7d;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="display:none;">{{name}}</h1>
+  <div id='map'></div>
+  
+  <div class="coord-search-box">
+    <label>Lat:</label>
+    <input type="text" id="latInput" placeholder="e.g. 35.68" />
+    <label>Lng:</label>
+    <input type="text" id="lngInput" placeholder="e.g. 51.38" />
+    <button onclick="goToCoordinates()">Go</button>
+  </div>
+
+  <script>
+    function isWebglSupported() {
+        if (window.WebGLRenderingContext) {
+            const canvas = document.createElement('canvas');
+            try {
+                const context = canvas.getContext('webgl2') || canvas.getContext('webgl');
+                if (context && typeof context.getParameter == 'function') {
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
+        return false;
+    }
+    
+    var q = (location.search || '').substr(1).split('&');
+    var preference =
+      q.indexOf('vector') >= 0 ? 'vector' :
+        (q.indexOf('raster') >= 0 ? 'raster' :
+          (isWebglSupported() ? 'vector' : 'raster'));
+
+    var keyMatch = location.search.match(/[\?\&]key=([^&]+)/i);
+    var keyParam = keyMatch ? '?key=' + keyMatch[1] : '';    
+
+    var map; // Define map globally for the custom function
+
+    if (preference == 'vector') {
+      maplibregl.setRTLTextPlugin('{{public_url}}mapbox-gl-rtl-text.js' + keyParam, true);
+      map = new maplibregl.Map({
+        container: 'map',
+        style: '{{public_url}}styles/{{id}}/style.json' + keyParam,
+        hash: true,
+        maxPitch: 85
+      });
+      map.addControl(new maplibregl.GlobeControl());
+      map.addControl(new maplibregl.NavigationControl({
+        visualizePitch: true, showZoom: true, showCompass: true
+      }));
+
+      map.on('style.load', function () {
+        var terrainId = null;
+        Object.entries(map.getStyle().sources).some(function (source) {
+          if (source[1].type == "raster-dem") {
+            terrainId = source[0];
+            return true;
+          }
+        });
+        if (terrainId) {
+          map.addControl(new maplibregl.TerrainControl({ source: terrainId }));
+        }
+      });
+
+      map.addControl(new MaplibreInspect({
+        showMapPopupOnHover: false,
+        showInspectMapPopupOnHover: false,
+        selectThreshold: 5
+      }));
+      
+    } else {
+        map = L.map('map', { minZoom: 1, zoomControl: false });
+        new L.Control.Zoom({ position: 'topright' }).addTo(map);
+        
+        var tile_urls = [], tile_attribution, tile_minzoom, tile_maxzoom;
+        var url = '{{public_url}}styles/512/{{id}}.json' + keyParam;
+        var req = new XMLHttpRequest();
+        req.overrideMimeType("application/json");
+        req.open('GET', url, true);
+        req.onload = function() {
+            var jsonResponse = JSON.parse(req.responseText);
+            for (key in jsonResponse) {
+              var keyl = key.toLowerCase();
+                switch(keyl) {
+                  case "tiles": tile_urls = jsonResponse[key]; break;
+                  case "attribution": tile_attribution = jsonResponse[key]; break;
+                  case "minzoom": tile_minzoom = jsonResponse[key]; break;
+                  case "maxzoom": tile_maxzoom = jsonResponse[key]; break;
+                }
+            }
+
+            for (tile_url in tile_urls) {
+                L.tileLayer(tile_urls[tile_url], {
+                    tileSize: 512,
+                    zoomOffset: -1,
+                    minZoom: tile_minzoom,
+                    maxZoom: tile_maxzoom,
+                    attribution: tile_attribution
+                }).addTo(map);
+            }
+        
+            map.eachLayer(function(layer) {
+              layer.scalePrefix = '.';
+            });
+        };
+        req.send(null);
+      
+        setTimeout(function() { new L.Hash(map); }, 0);
+    }
+
+    // --- Custom Coordinate Search Logic ---
+    var customMarker = null;
+
+    function goToCoordinates() {
+        var lat = parseFloat(document.getElementById('latInput').value);
+        var lng = parseFloat(document.getElementById('lngInput').value);
+
+        if (isNaN(lat) || isNaN(lng)) {
+            alert("Please enter valid numeric coordinates.");
+            return;
+        }
+
+        if (preference === 'vector') {
+            // MapLibre Logic
+            map.flyTo({ center: [lng, lat], zoom: 14 });
+            if (customMarker) customMarker.remove();
+            customMarker = new maplibregl.Marker().setLngLat([lng, lat]).addTo(map);
+        } else {
+            // Leaflet Logic
+            map.flyTo([lat, lng], 14);
+            if (customMarker) map.removeLayer(customMarker);
+            customMarker = L.marker([lat, lng]).addTo(map);
+        }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+# ==============================================================================
+# Environment / Secrets
+# ==============================================================================
+
+.env
+.env.*
+!.env.example
+
+# ==============================================================================
+# Generated TileServer Configuration
+# ==============================================================================
+
+/maps/config.json
+/maps/config_tmp.json
+
+# ==============================================================================
+# Managed OSM Sources / Generated Tiles
+# ==============================================================================
+
+/maps/sources/
+/maps/tiles/
+
+# Legacy/manual map data
+/maps/*.osm
+/maps/*.osm.pbf
+/maps/*.mbtiles
+/maps/*.pmtiles
+/maps/.*.building.mbtiles
+
+# SQLite temporary files
+/maps/*.sqlite
+/maps/*.db
+/maps/*.mbtiles-journal
+/maps/*.mbtiles-shm
+/maps/*.mbtiles-wal
+
+# ==============================================================================
+# Generated Runtime Styles / Installer Temporary Files
+# ==============================================================================
+
+/maps/styles/*/style.runtime.json
+/maps/styles/*/style.runtime.json.tmp
+/maps/styles/*/.style.json.install.*
+/maps/styles/*/.style.json.backup.*
+/maps/sprites/.*.install.*
+/maps/sprites/.*.backup.*
+
+# ==============================================================================
+# Fonts / Tilemaker Auxiliary Data
+# ==============================================================================
+
+/maps/fonts/
+/tilemaker-config/coastline/
+/tilemaker-config/landcover/
+
+# ==============================================================================
+# Runtime State / Temporary Processing
+# ==============================================================================
+
+/maps/temp_store/
+/maps/.downloads/
+/maps/.state/
+/maps/.manager.lock
+/maps/.default_map
+
+*.part
+*.tmp
+*.temp
+*.log
+*.bak
+*.old
+*.swp
+*.swo
+*~
+
+/tmp/
+/temp/
+
+# ==============================================================================
+# IDE / OS
+# ==============================================================================
+
+.idea/
+.vscode/
+*.iml
+
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# ==============================================================================
+# Frontend Dependencies / Archives
+# ==============================================================================
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+
+# ==============================================================================
+# Map Styles / Sprites
+# ==============================================================================
+
+# Ignore every installed style by default
+/maps/styles/*
+/maps/sprites/*
+
+# Keep only OSM Bright in Git
+!/maps/styles/osm-bright/
+!/maps/styles/osm-bright/style.json
+
+!/maps/sprites/osm-bright/
+!/maps/sprites/osm-bright/sprite.json
+!/maps/sprites/osm-bright/sprite.png
+!/maps/sprites/osm-bright/sprite@2x.json
+!/maps/sprites/osm-bright/sprite@2x.png
+
+# Generated runtime styles must never be committed
+/maps/styles/*/style.runtime.json
+/maps/styles/*/style.runtime.json.tmp
+
+# Style installer temporary files
+/maps/styles/*/.style.json.install.*
+/maps/styles/*/.style.json.backup.*
+/maps/sprites/.*.install.*
+/maps/sprites/.*.backup.*

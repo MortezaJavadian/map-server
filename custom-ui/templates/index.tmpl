@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TileServer GL - Server for vector and raster maps with GL styles</title>
+  <link rel="stylesheet" type="text/css" href="{{public_url}}index.css{{&key_query}}" />
+  <script>
+    function toggle_link(id, link) {
+      var el = document.getElementById(id);
+      var s = el.style;
+      if (s.display == 'none') {
+        s.display = 'inline-block';
+      } else if (el.value == link) {
+        s.display = 'none';
+      }
+      el.value = link;
+      el.setSelectionRange(0, el.value.length);
+      return false;
+    }
+
+    function filter() {
+      var filter = document.getElementById('filter').value.toLowerCase();
+      var items = document.getElementsByClassName('item');
+      for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          var dataName = item.getAttribute('data-name')?.toLowerCase() ?? '';
+          var dataIdentifier = item.getAttribute('data-id')?.toLowerCase() ?? '';
+          item.hidden = !(dataName.indexOf(filter) > -1 || dataIdentifier.indexOf(filter) > -1);
+      }
+    }
+  </script>
+</head>
+<body>
+  <section>
+    <h1 class="title {{#if is_light}}light{{/if}}"><img src="{{public_url}}images/logo.png{{&key_query}}" alt="TileServer GL" /></h1>
+    <h2 class="subtitle">Vector {{#if is_light}}<s>and raster</s>{{else}}and raster{{/if}} maps with GL styles</h2>
+    <h2 class="box-header">Filter</h2>
+    <!-- filter box -->
+    <div class="box">
+      <div class="filter-item">
+        <div class="filter-details">
+          <h3>Filter styles and data by name or identifier</h3>
+          <!-- filter input , needs to call filter() when content changes...-->
+          <input id="filter" type="text" oninput="filter()" placeholder="Start typing name or identifier" autofocus />
+        </div>
+      </div>
+    </div>
+    {{#if styles}}
+      <h2 class="box-header">Styles</h2>
+      <div class="box">
+      {{#each styles}}
+        <div class="item" data-id="{{@key}}" data-name="{{name}}">
+          {{#if thumbnail}}
+            <img src="{{public_url}}styles/{{@key}}/{{thumbnail}}{{&../key_query}}" alt="{{name}} preview" />
+          {{else}}
+            <img src="{{public_url}}images/placeholder.png{{&key_query}}" alt="{{name}} preview" />
+          {{/if}}
+          <div class="details">
+            <h3>{{name}}</h3>
+            <p class="identifier">identifier: {{@key}}</p>
+            <p class="services">
+              services:
+              {{#if serving_data}}
+                <a href="{{public_url}}styles/{{@key}}/style.json{{&../key_query}}">GL Style</a>
+              {{/if}}
+              {{#if serving_rendered}}
+                {{#if serving_data}}| {{/if}}<a href="{{public_url}}styles/512/{{@key}}.json{{&../key_query}}">TileJSON</a>
+              {{/if}}
+              {{#if serving_rendered}}
+                | <a href="{{public_url}}styles/{{@key}}/wmts.xml{{&../key_query}}">WMTS</a>
+              {{/if}}
+              {{#if xyz_link}}
+                | <a href="#" onclick="return toggle_link('xyz_style_{{@key}}', '{{&xyz_link}}');">XYZ</a>
+                  <input id="xyz_style_{{@key}}" type="text" value="" style="display:none;" />
+              {{/if}}
+            </p>
+          </div>
+          <div class="viewers">
+            {{#if serving_data}}
+              {{#if serving_rendered}}
+                <a class="btn" href="{{public_url}}styles/{{@key}}/{{&../key_query}}{{viewer_hash}}">Viewer</a>
+              {{/if}}
+            {{/if}}
+            {{#if serving_rendered}}
+              <a class="btn" href="{{public_url}}styles/{{@key}}/?{{&../key_query_part}}raster{{viewer_hash}}">Raster</a>
+            {{/if}}
+            {{#if serving_data}}
+              <a class="btn" href="{{public_url}}styles/{{@key}}/?{{&../key_query_part}}vector{{viewer_hash}}">Vector</a>
+            {{/if}}
+          </div>
+        </div>
+      {{/each}}
+      </div>
+    {{/if}}
+    {{#if data}}
+      <h2 class="box-header">Data</h2>
+      <div class="box">
+      {{#each data}}
+        <div class="item" data-id="{{@key}}" data-name="{{tileJSON.name}}">
+          {{#if thumbnail}}
+            <img src="{{public_url}}data/{{@key}}/{{thumbnail}}{{&../key_query}}" alt="{{name}} preview" />
+          {{else}}
+            <img src="{{public_url}}images/placeholder.png{{&key_query}}" alt="{{name}} preview" />
+          {{/if}}
+          <div class="details">
+            <h3>{{tileJSON.name}}</h3>
+            <div class="identifier">identifier: {{@key}}{{#if formatted_filesize}} | size: {{formatted_filesize}}{{/if}}</div>
+            <div class="identifier">type: {{#is_vector}}vector{{/is_vector}}{{^is_vector}}raster{{/is_vector}} data {{#if sourceType}} | ext: {{sourceType}}{{/if}}</div>
+            <p class="services">
+              services: <a href="{{public_url}}data/{{@key}}.json{{&../key_query}}">TileJSON</a>
+              {{#if xyz_link}}
+                | <a href="#" onclick="return toggle_link('link_data_{{@key}}', '{{&xyz_link}}');">XYZ</a>
+              {{/if}}
+              {{#if elevation_link}}
+                | <a href="#" onclick="return toggle_link('link_data_{{@key}}', '{{&elevation_link}}');">Elevation</a>
+              {{/if}}
+                <input id="link_data_{{@key}}" type="text" value="" style="display:none;" />
+            </p>
+          </div>
+          <div class="viewers">
+            {{#is_vector}}
+            <a class="btn" href="{{public_url}}data/{{@key}}/{{&../key_query}}{{viewer_hash}}">Inspect</a>
+            {{/is_vector}}
+            {{^is_vector}}
+            <a class="btn" href="{{public_url}}data/{{@key}}/{{&../key_query}}{{viewer_hash}}">View</a>
+              {{#is_terrain}}
+            <a class="btn" href="{{public_url}}data/preview/{{@key}}/{{&../key_query}}{{viewer_hash}}">Preview Terrain</a>
+              {{/is_terrain}}
+            {{/is_vector}}
+          </div>
+        </div>
+      {{/each}}
+      </div>
+    {{/if}}
+  </section>
+  <footer>
+    <a href="https://www.maptiler.com/" target="_blank"><img src="{{public_url}}images/maptiler-logo.svg{{&key_query}}" /></a>
+    <p>
+      <a href="https://github.com/maptiler/tileserver-gl" target="_blank">Powered by TileServer GL ({{server_version}})</a> – <a href="https://www.maptiler.com/" target="_blank">an open-source project from MapTiler.</a>
+    </p>
+  </footer>
+</body>
+</html>

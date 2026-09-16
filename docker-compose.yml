@@ -1,0 +1,22 @@
+services:
+  tileserver:
+    image: ${TILESERVER_IMAGE}
+    container_name: tileserver
+    restart: always
+
+    volumes:
+      - ./maps:/data
+      - ./custom-ui:/usr/src/app/public
+
+    command:
+      - "-c"
+      - "/data/config.json"
+      - "--public_url"
+      - "https://${MAP_DOMAIN}/"
+
+    networks:
+      - nginx
+
+networks:
+  nginx:
+    external: true
